@@ -21,6 +21,7 @@ import TableHeaderFilter from '@/components/TableHeaderFilter';
 import styles from './style.less';
 import { ISemantic } from '../data';
 import { ColumnsConfig } from './TableColumnRender';
+import { toMetricEditPage } from '@/pages/SemanticModel/utils';
 
 type Props = {
   onEmptyMetricData?: () => void;
@@ -32,7 +33,7 @@ const ClassMetricTable: React.FC<Props> = ({ onEmptyMetricData }) => {
   const metricModel = useModel('SemanticModel.metricData');
   const { selectDomainId } = domainModel;
   const { selectModelId: modelId } = modelModel;
-  const { MrefreshMetricList } = metricModel;
+  const { MrefreshMetricList, setSelectMetric } = metricModel;
   const [batchSensitiveLevelOpenState, setBatchSensitiveLevelOpenState] = useState<boolean>(false);
   const [createModalVisible, setCreateModalVisible] = useState<boolean>(false);
   const [metricItem, setMetricItem] = useState<ISemantic.IMetricItem>();
@@ -142,7 +143,14 @@ const ClassMetricTable: React.FC<Props> = ({ onEmptyMetricData }) => {
     }
   };
 
-  const columnsConfig = ColumnsConfig({ indicatorInfo: { url: '/model/metric/edit/' } });
+  const columnsConfig = ColumnsConfig({
+    indicatorInfo: {
+      url: '/model/metric/:domainId/:modelId/:indicatorId',
+      onNameClick: (record) => {
+        setSelectMetric(record as ISemantic.IMetricItem);
+      },
+    },
+  });
 
   const columns: ProColumns[] = [
     {
@@ -236,8 +244,8 @@ const ClassMetricTable: React.FC<Props> = ({ onEmptyMetricData }) => {
               type="link"
               key="metricEditBtn"
               onClick={() => {
-                setMetricItem(record);
-                setCreateModalVisible(true);
+                const { domainId, modelId, id } = record;
+                toMetricEditPage(domainId, modelId, id);
               }}
             >
               编辑
@@ -452,8 +460,9 @@ const ClassMetricTable: React.FC<Props> = ({ onEmptyMetricData }) => {
             key="create"
             type="primary"
             onClick={() => {
-              setMetricItem(undefined);
-              setCreateModalVisible(true);
+              toMetricEditPage(selectDomainId, modelId!, 0);
+              // setMetricItem(undefined);
+              // setCreateModalVisible(true);
             }}
           >
             创建指标

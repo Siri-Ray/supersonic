@@ -27,7 +27,7 @@ import com.tencent.supersonic.common.util.ChatAppManager;
 import com.tencent.supersonic.common.util.JsonUtil;
 import com.tencent.supersonic.headless.api.pojo.DataSetDetail;
 import com.tencent.supersonic.headless.api.pojo.DataSetModelConfig;
-import com.tencent.supersonic.headless.api.pojo.Dim;
+import com.tencent.supersonic.headless.api.pojo.Dimension;
 import com.tencent.supersonic.headless.api.pojo.DimensionTimeTypeParams;
 import com.tencent.supersonic.headless.api.pojo.Field;
 import com.tencent.supersonic.headless.api.pojo.FieldParam;
@@ -70,6 +70,8 @@ import java.util.Map;
 @Order(1)
 public class S2VisitsDemo extends S2BaseDemo {
 
+    public static final String AGENT_NAME = "超音数分析助手";
+
     public void doRun() {
         try {
             // create domain
@@ -79,8 +81,8 @@ public class S2VisitsDemo extends S2BaseDemo {
             ModelResp userModel = addModel_1(s2Domain, demoDatabase);
             ModelResp pvUvModel = addModel_2(s2Domain, demoDatabase);
             ModelResp stayTimeModel = addModel_3(s2Domain, demoDatabase);
-            addModelRela(s2Domain, userModel, pvUvModel, "user_name");
-            addModelRela(s2Domain, userModel, stayTimeModel, "user_name");
+            addModelRela(s2Domain, pvUvModel, userModel, "user_name");
+            addModelRela(s2Domain, stayTimeModel, userModel, "user_name");
 
             // create metrics and dimensions
             DimensionResp departmentDimension = getDimension("department", userModel);
@@ -134,19 +136,20 @@ public class S2VisitsDemo extends S2BaseDemo {
 
     private void addSampleChats(Integer agentId) {
         Long chatId = chatManageService.addChat(defaultUser, "样例对话1", agentId);
-        submitText(chatId.intValue(), agentId, "超音数 访问次数");
+        submitText(chatId.intValue(), agentId, "访问过超音数的部门有哪些");
         submitText(chatId.intValue(), agentId, "按部门统计近7天访问次数");
         submitText(chatId.intValue(), agentId, "alice 停留时长");
     }
 
     private Integer addAgent(long dataSetId) {
         Agent agent = new Agent();
-        agent.setName("超音数分析助手");
+        agent.setName(AGENT_NAME);
         agent.setDescription("帮忙您对超音数产品的用户访问情况做分析");
         agent.setStatus(1);
         agent.setEnableSearch(1);
         agent.setExamples(Lists.newArrayList("近15天超音数访问次数汇总", "按部门统计超音数的访问人数", "对比alice和lucy的停留时长",
-                "过去30天访问次数最高的部门top3", "近1个月总访问次数超过100次的部门有几个", "过去半个月每个核心用户的总停留时长"));
+                "过去30天访问次数最高的部门top3", "近1个月总访问次数超过100次的部门有几个", "过去半个月每个核心用户的总停留时长",
+                "今年以来访问次数最高的一天是哪一天"));
 
         // configure tools
         ToolConfig toolConfig = new ToolConfig();
@@ -162,6 +165,8 @@ public class S2VisitsDemo extends S2BaseDemo {
                 Maps.newHashMap(ChatAppManager.getAllApps(AppModule.CHAT));
         chatAppConfig.values().forEach(app -> app.setChatModelId(demoChatModel.getId()));
         agent.setChatAppConfig(chatAppConfig);
+        agent.setAdmins(Lists.newArrayList("tom"));
+        agent.setViewers(Lists.newArrayList("alice", "jack"));
         Agent agentCreated = agentService.createAgent(agent, defaultUser);
         return agentCreated.getId();
     }
@@ -194,8 +199,9 @@ public class S2VisitsDemo extends S2BaseDemo {
         identifiers.add(new Identify("用户", IdentifyType.primary.name(), "user_name", 1));
         modelDetail.setIdentifiers(identifiers);
 
-        List<Dim> dimensions = new ArrayList<>();
-        dimensions.add(new Dim("部门", "department", DimensionType.categorical, 1));
+        List<Dimension> dimensions = new ArrayList<>();
+        dimensions.add(new Dimension("部门", "department", DimensionType.categorical, 1));
+        // dimensions.add(new Dimension("用户", "user_name", DimensionType.categorical, 1));
         modelDetail.setDimensions(dimensions);
         List<Field> fields = Lists.newArrayList();
         fields.add(Field.builder().fieldName("user_name").dataType("Varchar").build());
@@ -224,11 +230,11 @@ public class S2VisitsDemo extends S2BaseDemo {
         identifiers.add(new Identify("用户名", IdentifyType.foreign.name(), "user_name", 0));
         modelDetail.setIdentifiers(identifiers);
 
-        List<Dim> dimensions = new ArrayList<>();
-        Dim dimension1 = new Dim("", "imp_date", DimensionType.partition_time, 0);
+        List<Dimension> dimensions = new ArrayList<>();
+        Dimension dimension1 = new Dimension("", "imp_date", DimensionType.partition_time, 0);
         dimension1.setTypeParams(new DimensionTimeTypeParams());
         dimensions.add(dimension1);
-        Dim dimension2 = new Dim("", "page", DimensionType.categorical, 0);
+        Dimension dimension2 = new Dimension("", "page", DimensionType.categorical, 0);
         dimension2.setExpr("page");
         dimensions.add(dimension2);
         modelDetail.setDimensions(dimensions);
@@ -268,11 +274,11 @@ public class S2VisitsDemo extends S2BaseDemo {
         identifiers.add(new Identify("用户", IdentifyType.foreign.name(), "user_name", 0));
         modelDetail.setIdentifiers(identifiers);
 
-        List<Dim> dimensions = new ArrayList<>();
-        Dim dimension1 = new Dim("数据日期", "imp_date", DimensionType.partition_time, 1);
+        List<Dimension> dimensions = new ArrayList<>();
+        Dimension dimension1 = new Dimension("数据日期", "imp_date", DimensionType.partition_time, 1);
         dimension1.setTypeParams(new DimensionTimeTypeParams());
         dimensions.add(dimension1);
-        Dim dimension2 = new Dim("页面", "page", DimensionType.categorical, 1);
+        Dimension dimension2 = new Dimension("页面", "page", DimensionType.categorical, 1);
         dimension2.setExpr("page");
         dimensions.add(dimension2);
         modelDetail.setDimensions(dimensions);
@@ -380,9 +386,9 @@ public class S2VisitsDemo extends S2BaseDemo {
         metricReq.setDescription("访问的用户个数");
         metricReq.setAlias("UV,访问人数");
         MetricDefineByFieldParams metricTypeParams = new MetricDefineByFieldParams();
-        metricTypeParams.setExpr("count(distinct user_id)");
+        metricTypeParams.setExpr("count(distinct user_name)");
         List<FieldParam> fieldParams = new ArrayList<>();
-        fieldParams.add(new FieldParam("user_id"));
+        fieldParams.add(new FieldParam("user_name"));
         metricTypeParams.setFields(fieldParams);
         metricReq.setMetricDefineByFieldParams(metricTypeParams);
         metricReq.setMetricDefineType(MetricDefineType.FIELD);
@@ -444,7 +450,7 @@ public class S2VisitsDemo extends S2BaseDemo {
         termReq1.setDescription("用户为tom和lucy");
         termReq1.setAlias(Lists.newArrayList("VIP用户"));
         termReq1.setDomainId(s2Domain.getId());
-        termService.saveOrUpdate(termReq, defaultUser);
+        termService.saveOrUpdate(termReq1, defaultUser);
     }
 
     private void addAuthGroup_1(ModelResp stayTimeModel) {

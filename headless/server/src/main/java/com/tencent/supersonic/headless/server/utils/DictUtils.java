@@ -14,7 +14,7 @@ import com.tencent.supersonic.common.pojo.enums.TimeDimensionEnum;
 import com.tencent.supersonic.common.pojo.enums.TypeEnums;
 import com.tencent.supersonic.common.util.BeanMapper;
 import com.tencent.supersonic.common.util.JsonUtil;
-import com.tencent.supersonic.headless.api.pojo.Dim;
+import com.tencent.supersonic.headless.api.pojo.Dimension;
 import com.tencent.supersonic.headless.api.pojo.ItemValueConfig;
 import com.tencent.supersonic.headless.api.pojo.request.DictItemReq;
 import com.tencent.supersonic.headless.api.pojo.request.QuerySqlReq;
@@ -34,6 +34,7 @@ import com.tencent.supersonic.headless.server.service.DimensionService;
 import com.tencent.supersonic.headless.server.service.MetricService;
 import com.tencent.supersonic.headless.server.service.ModelService;
 import com.tencent.supersonic.headless.server.service.TagMetaService;
+import com.xkzhangsan.time.utils.CollectionUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -400,7 +401,7 @@ public class DictUtils {
     private void fillStructDateBetween(QueryStructReq queryStructReq, ModelResp model,
             Integer itemValueDateStart, Integer itemValueDateEnd) {
         if (Objects.nonNull(model)) {
-            List<Dim> timeDims = model.getTimeDimension();
+            List<Dimension> timeDims = model.getTimeDimension();
             if (!CollectionUtils.isEmpty(timeDims)) {
                 DateConf dateConf = new DateConf();
                 dateConf.setDateMode(DateConf.DateMode.BETWEEN);
@@ -495,7 +496,7 @@ public class DictUtils {
     private boolean partitionedModel(Long modelId) {
         ModelResp model = modelService.getModel(modelId);
         if (Objects.nonNull(model)) {
-            List<Dim> timeDims = model.getTimeDimension();
+            List<Dimension> timeDims = model.getTimeDimension();
             if (!CollectionUtils.isEmpty(timeDims)) {
                 return true;
             }
@@ -506,7 +507,7 @@ public class DictUtils {
     private String generateDictDateFilterRecent(DictItemResp dictItemResp) {
         ModelResp model = modelService.getModel(dictItemResp.getModelId());
         if (Objects.nonNull(model)) {
-            List<Dim> timeDims = model.getTimeDimension();
+            List<Dimension> timeDims = model.getTimeDimension();
             if (!CollectionUtils.isEmpty(timeDims)) {
                 String dateFormat = timeDims.get(0).getDateFormat();
                 if (StringUtils.isEmpty(dateFormat)) {
@@ -532,5 +533,13 @@ public class DictUtils {
         resp.setType(TypeEnums.valueOf(dictTaskDO.getType()));
         resp.setConfig(JsonUtil.toObject(dictTaskDO.getConfig(), ItemValueConfig.class));
         return resp;
+    }
+
+    public List<DictTaskResp> taskDO2Resp(List<DictTaskDO> dictTaskDOList) {
+        List<DictTaskResp> dictTaskRespList = new ArrayList<>();
+        if (CollectionUtil.isNotEmpty(dictTaskDOList)) {
+            dictTaskDOList.stream().forEach(taskDO -> dictTaskRespList.add(taskDO2Resp(taskDO)));
+        }
+        return dictTaskRespList;
     }
 }

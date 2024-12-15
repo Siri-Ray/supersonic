@@ -1,6 +1,6 @@
 package com.tencent.supersonic.headless.server.manager;
 
-import com.tencent.supersonic.headless.api.pojo.Dim;
+import com.tencent.supersonic.headless.api.pojo.Dimension;
 import com.tencent.supersonic.headless.api.pojo.Identify;
 import com.tencent.supersonic.headless.api.pojo.Measure;
 import com.tencent.supersonic.headless.api.pojo.ModelDetail;
@@ -18,7 +18,6 @@ import com.tencent.supersonic.headless.server.pojo.yaml.MeasureYamlTpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -33,7 +32,6 @@ public class ModelYamlManager {
         ModelDetail modelDetail = modelResp.getModelDetail();
         DbAdaptor engineAdaptor = DbAdaptorFactory.getEngineAdaptor(databaseResp.getType());
         SysTimeDimensionBuilder.addSysTimeDimension(modelDetail.getDimensions(), engineAdaptor);
-        addInterCntMetric(modelResp.getBizName(), modelDetail);
         DataModelYamlTpl dataModelYamlTpl = new DataModelYamlTpl();
         dataModelYamlTpl.setType(databaseResp.getType());
         BeanUtils.copyProperties(modelDetail, dataModelYamlTpl);
@@ -55,7 +53,7 @@ public class ModelYamlManager {
         return dataModelYamlTpl;
     }
 
-    public static DimensionYamlTpl convert(Dim dim) {
+    public static DimensionYamlTpl convert(Dimension dim) {
         DimensionYamlTpl dimensionYamlTpl = new DimensionYamlTpl();
         BeanUtils.copyProperties(dim, dimensionYamlTpl);
         dimensionYamlTpl.setName(dim.getBizName());
@@ -86,15 +84,4 @@ public class ModelYamlManager {
         return identifyYamlTpl;
     }
 
-    private static void addInterCntMetric(String datasourceEnName, ModelDetail datasourceDetail) {
-        Measure measure = new Measure();
-        measure.setExpr("1");
-        if (!CollectionUtils.isEmpty(datasourceDetail.getIdentifiers())) {
-            measure.setExpr(datasourceDetail.getIdentifiers().get(0).getBizName());
-        }
-        measure.setAgg("count");
-        measure.setBizName(String.format("%s_%s", datasourceEnName, "internal_cnt"));
-        measure.setIsCreateMetric(1);
-        datasourceDetail.getMeasures().add(measure);
-    }
 }
